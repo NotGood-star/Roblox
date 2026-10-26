@@ -3,8 +3,9 @@ import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands
+from aiohttp import web
 
-# Setup intents (Must enable Server Members in Developer Portal)
+# Setup basic intents
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
@@ -14,7 +15,6 @@ class MyBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
-        # Syncs slash commands globally
         await self.tree.sync()
         print("Slash commands synced successfully!")
 
@@ -22,74 +22,60 @@ bot = MyBot()
 
 @bot.event
 async def on_ready():
-    print(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
-    print("Bot is online and ready!")
+    print(f"Logged in successfully as {bot.user.name}")
 
 @bot.tree.command(name="dmall", description="Send a DM to all members of this server.")
 @app_commands.describe(message="The announcement message to send.")
 async def dmall(interaction: discord.Interaction, message: str):
-    # Restrict to Administrators only
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("❌ You must be an Administrator to use this command.", ephemeral=True)
+        await interaction.response.send_message("❌ You must be an Administrator to run this command.", ephemeral=True)
         return
 
-    await interaction.response.send_message("⏳ Starting mass DM process... This will take some time due to rate limits.", ephemeral=True)
+    await interaction.response.send_message("⏳ Starting mass DM process...", ephemeral=True)
     
     success_count = 0
     fail_count = 0
 
-    # Loop through everyone in the server
     for member in interaction.guild.members:
         if member.bot:
-            continue  # Skip other bots
-        
+            continue
         try:
             await member.send(message)
             success_count += 1
-            # CRUCIAL: 4-second delay prevents Discord from banning the bot for spamming
-            await asyncio.sleep(4)
+            await asyncio.sleep(4)  # Safety delay to prevent Discord anti-spam bans
         except discord.Forbidden:
-            # Fails if the user has private DMs turned off or blocked the bot
             fail_count += 1
-        except Exception as e:
+        except Exception:
             fail_count += 1
 
-    print(f"Mass DM Finished. Sent: {success_count} | Failed: {fail_count}")
+    print(f"Mass DM Complete. Sent: {success_count} | Failed: {fail_count}")
 
-# Render uses environment variables to keep your token safe
-TOKEN = os.getenv("DISCORD_TOKEN")
-# Replace the standard bot.run(TOKEN) block at the very bottom with this:
+# --- CRUCIAL RENDER PORT BINDING ROUTINE ---
+async def handle_ping(request):
+    return web.Response(text="Bot webserver is active!")
 
-import sys
+async def start_server():
+    app = web.Application()
+    app.router.add_get('/', handle_ping)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    
+    # Render assigns the required port number dynamically via the PORT variable
+    port = int(os.getenv("PORT", 10000))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    print(f"✅ Web server successfully bound and listening on port {port}")
 
 async def main():
-    max_retries = 10
-    retry_delay = 60  # Wait 60 seconds before trying a new connection if blocked
+    # Force the port scanner to satisfy Render immediately
+    await start_server()
     
-    for attempt in range(max_retries):
-        try:
-            print(f"Connecting to Discord (Attempt {attempt + 1}/{max_retries})...")
-            await bot.start(TOKEN)
-            break
-        except discord.errors.HTTPException as e:
-            if e.status == 429:
-                print(f"⚠️ Discord Rate Limit hit (429). Cloud IP is restricted. Retrying in {retry_delay} seconds...")
-                await asyncio.sleep(retry_delay)
-            else:
-                print(f"Fatal HTTP Error encountered: {e}")
-                sys.exit(1)
-        except Exception as e:
-            print(f"Unexpected connection failure: {e}")
-            sys.exit(1)
-
-if __name__ == "__main__":
     TOKEN = os.getenv("DISCORD_TOKEN")
     if not TOKEN:
-        print("Error: DISCORD_TOKEN environment variable is missing.")
-        sys.exit(1)
+        print("Error: DISCORD_TOKEN is missing from your Environment Variables.")
+        return
         
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Bot implementation manually terminated.")
+    await bot.start(TOKEN)
 
+if __name__ == "__main__":
+    asyncio.run(main())
