@@ -58,4 +58,38 @@ async def dmall(interaction: discord.Interaction, message: str):
 
 # Render uses environment variables to keep your token safe
 TOKEN = os.getenv("DISCORD_TOKEN")
-bot.run(TOKEN)
+# Replace the standard bot.run(TOKEN) block at the very bottom with this:
+
+import sys
+
+async def main():
+    max_retries = 10
+    retry_delay = 60  # Wait 60 seconds before trying a new connection if blocked
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"Connecting to Discord (Attempt {attempt + 1}/{max_retries})...")
+            await bot.start(TOKEN)
+            break
+        except discord.errors.HTTPException as e:
+            if e.status == 429:
+                print(f"⚠️ Discord Rate Limit hit (429). Cloud IP is restricted. Retrying in {retry_delay} seconds...")
+                await asyncio.sleep(retry_delay)
+            else:
+                print(f"Fatal HTTP Error encountered: {e}")
+                sys.exit(1)
+        except Exception as e:
+            print(f"Unexpected connection failure: {e}")
+            sys.exit(1)
+
+if __name__ == "__main__":
+    TOKEN = os.getenv("DISCORD_TOKEN")
+    if not TOKEN:
+        print("Error: DISCORD_TOKEN environment variable is missing.")
+        sys.exit(1)
+        
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Bot implementation manually terminated.")
+
