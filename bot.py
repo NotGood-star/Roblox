@@ -171,7 +171,7 @@ async def givepremium(interaction: discord.Interaction, user: discord.User, days
     await interaction.response.send_message(f"✅ Successfully granted **{duration_text} Premium** access to {user.mention}.", ephemeral=False)
 
 
-# --- NEW STOCK MANAGEMENT COMMANDS ---
+# --- STOCK MANAGEMENT COMMANDS ---
 
 @bot.tree.command(name="addstock", description="Add an item item into a specific generator stock file.")
 @app_commands.describe(
@@ -201,7 +201,6 @@ async def addstock(interaction: discord.Interaction, tier: app_commands.Choice[s
 
 @bot.tree.command(name="stock", description="Check current code stock amounts across all available categories.")
 async def stock(interaction: discord.Interaction):
-    # Publicly visible to all members (ephemeral=False)
     embed = discord.Embed(
         title="📦 Generator Active Stock Status",
         description="Current number of working rewards available in real-time:",
@@ -209,7 +208,7 @@ async def stock(interaction: discord.Interaction):
     )
     embed.add_field(name="✨ Premium Nitro", value=f"`{count_stock(STOCK_FILES['premium_nitro'])} item(s)`", inline=True)
     embed.add_field(name="🆓 Free Nitro", value=f"`{count_stock(STOCK_FILES['free_nitro'])} item(s)`", inline=True)
-    embed.add_field(name="\u200b", value="\u200b", inline=True) # visual spacer
+    embed.add_field(name="\u200b", value="\u200b", inline=True)
     
     embed.add_field(name="🎮 Premium Robux", value=f"`{count_stock(STOCK_FILES['premium_robux'])} item(s)`", inline=True)
     embed.add_field(name="🆓 Free Robux", value=f"`{count_stock(STOCK_FILES['free_robux'])} item(s)`", inline=True)
@@ -223,9 +222,8 @@ async def stock(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
-# --- INDIVIDUAL GENERATOR SLOTS ---
+# --- INDIVIDUAL PREMIUM GENERATORS ---
 
-# 1. Premium Generators
 @bot.tree.command(name="premium_nitro", description="Claim a premium tier Nitro link.")
 async def premium_nitro(interaction: discord.Interaction):
     if not is_user_premium_status(interaction):
@@ -252,3 +250,4 @@ async def premium_robux(interaction: discord.Interaction):
 @bot.tree.command(name="premium_mcfa", description="Claim a premium tier Minecraft account.")
 async def premium_mcfa(interaction: discord.Interaction):
     if not is_user_premium_status(interaction):
+        await interaction.response.send_message("❌ Access Denied. You need premium tracking or the Boosted role.", ephemeral=True)
