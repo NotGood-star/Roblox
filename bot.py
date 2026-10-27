@@ -37,10 +37,27 @@ STOCK_FILES = {
     "premium_mcfa": "premium_mcfa.txt"
 }
 
+# --- AUTO-INITIALIZATION SAFETY ROUTINE ---
+# This block ensures files exist right at launch so Render never throws early exits!
+if not os.path.exists(PREMIUM_FILE):
+    with open(PREMIUM_FILE, "w") as f:
+        json.dump({}, f)
+else:
+    # Double check that the file isn't blank or corrupted
+    try:
+        with open(PREMIUM_FILE, "r") as f:
+            json.load(f)
+    except Exception:
+        with open(PREMIUM_FILE, "w") as f:
+            json.dump({}, f)
+
+for file_path in STOCK_FILES.values():
+    if not os.path.exists(file_path):
+        with open(file_path, "w") as f:
+            pass
+
 # --- HELPER FUNCTIONS FOR PREMIUM EXPIRATION & STOCK ---
 def load_premium_data():
-    if not os.path.exists(PREMIUM_FILE):
-        return {}
     try:
         with open(PREMIUM_FILE, "r") as f:
             return json.load(f)
@@ -243,11 +260,3 @@ async def premium_robux(interaction: discord.Interaction):
         return
     reward = get_stock_item(STOCK_FILES["premium_robux"])
     if not reward:
-        await interaction.response.send_message("❌ Out of Stock! Premium Robux files are empty.", ephemeral=True)
-        return
-    await interaction.response.send_message(f"🎮 **Premium Robux Pin:**\n**`{reward}`**", ephemeral=True)
-
-@bot.tree.command(name="premium_mcfa", description="Claim a premium tier Minecraft account.")
-async def premium_mcfa(interaction: discord.Interaction):
-    if not is_user_premium_status(interaction):
-        await interaction.response.send_message("❌ Access Denied. You need premium tracking or the Boosted role.", ephemeral=True)
