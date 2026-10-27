@@ -188,7 +188,7 @@ async def givepremium(interaction: discord.Interaction, user: discord.User, days
 
 # --- STOCK MANAGEMENT COMMANDS ---
 
-@bot.tree.command(name="addstock", description="Add an item item into a specific generator stock file.")
+@bot.tree.command(name="addstock", description="Add an item into a specific generator stock file.")
 @app_commands.describe(
     tier="Choose between Free or Premium file tracking.",
     type="The specific reward category.",
@@ -260,3 +260,4 @@ async def premium_robux(interaction: discord.Interaction):
     if not reward:
         await interaction.response.send_message("❌ Out of Stock! Premium Robux files are empty.", ephemeral=True)
         return
+
