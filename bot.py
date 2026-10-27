@@ -117,7 +117,7 @@ def get_stock_item(filename):
     if not cleaned_lines:
         return None
     
-    # FIXED: Extracting the first string element out of the list before stripping
+    # Extracting the first element directly from the list safely
     pulled_item = cleaned_lines[0].strip()
     
     with open(filename, "w") as f:
@@ -155,7 +155,7 @@ async def dmall(interaction: discord.Interaction, message: str):
         try:
             await member.send(message)
             success_count += 1
-            await asyncio.sleep(4)  # Safety delay to prevent Discord anti-spam bans
+            await asyncio.sleep(4)
         except discord.Forbidden:
             fail_count += 1
         except Exception:
@@ -259,3 +259,5 @@ async def premium_robux(interaction: discord.Interaction):
         return
     reward = get_stock_item(STOCK_FILES["premium_robux"])
     if not reward:
+        await interaction.response.send_message("❌ Out of Stock! Premium Robux files are empty.", ephemeral=True)
+        return
