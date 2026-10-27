@@ -117,6 +117,7 @@ def get_stock_item(filename):
     if not cleaned_lines:
         return None
     
+    # FIXED: Extracting the first string element out of the list before stripping
     pulled_item = cleaned_lines[0].strip()
     
     with open(filename, "w") as f:
@@ -258,6 +259,3 @@ async def premium_robux(interaction: discord.Interaction):
         return
     reward = get_stock_item(STOCK_FILES["premium_robux"])
     if not reward:
-        await interaction.response.send_message("❌ Out of Stock! Premium Robux files are empty.", ephemeral=True)
-        return
-
