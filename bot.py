@@ -38,12 +38,10 @@ STOCK_FILES = {
 }
 
 # --- AUTO-INITIALIZATION SAFETY ROUTINE ---
-# This block ensures files exist right at launch so Render never throws early exits!
 if not os.path.exists(PREMIUM_FILE):
     with open(PREMIUM_FILE, "w") as f:
         json.dump({}, f)
 else:
-    # Double check that the file isn't blank or corrupted
     try:
         with open(PREMIUM_FILE, "r") as f:
             json.load(f)
@@ -260,3 +258,5 @@ async def premium_robux(interaction: discord.Interaction):
         return
     reward = get_stock_item(STOCK_FILES["premium_robux"])
     if not reward:
+        await interaction.response.send_message("❌ Out of Stock! Premium Robux files are empty.", ephemeral=True)
+        return
