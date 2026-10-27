@@ -27,6 +27,16 @@ BOOSTED_ROLE_ID = 1564608237767098409
 FREE_ROLE_ID = 1564608237767098409
 PREMIUM_FILE = "premium.json"
 
+# File mappings to keep stock paths clean
+STOCK_FILES = {
+    "free_nitro": "free_nitro.txt",
+    "premium_nitro": "premium_nitro.txt",
+    "free_robux": "free_robux.txt",
+    "premium_robux": "premium_robux.txt",
+    "free_mcfa": "free_mcfa.txt",
+    "premium_mcfa": "premium_mcfa.txt"
+}
+
 # --- HELPER FUNCTIONS FOR PREMIUM EXPIRATION & STOCK ---
 def load_premium_data():
     if not os.path.exists(PREMIUM_FILE):
@@ -42,7 +52,7 @@ def save_premium_data(data):
         json.dump(data, f, indent=4)
 
 def is_user_premium_status(interaction: discord.Interaction) -> bool:
-    """Checks if the user qualifies for the premium high-tier stock."""
+    """Checks if the user qualifies for premium high-tier stock commands."""
     if interaction.user.guild_permissions.administrator:
         return True
 
@@ -50,7 +60,7 @@ def is_user_premium_status(interaction: discord.Interaction) -> bool:
     uid_str = str(interaction.user.id)
     if uid_str in data:
         exp_time = data[uid_str]
-        if exp_time == 0:  # Infinite
+        if exp_time == 0:
             return True
         if datetime.datetime.utcnow().timestamp() < exp_time:
             return True
@@ -66,39 +76,43 @@ def is_user_premium_status(interaction: discord.Interaction) -> bool:
     return False
 
 def has_free_access(interaction: discord.Interaction) -> bool:
-    """Checks if the user has at least the free tier access."""
+    """Checks if the user has free tier role access."""
     if isinstance(interaction.user, discord.Member):
         role_ids = [role.id for role in interaction.user.roles]
         if FREE_ROLE_ID in role_ids:
             return True
     return False
 
+def count_stock(filename):
+    """Returns the line count of a file securely."""
+    if not os.path.exists(filename):
+        return 0
+    with open(filename, "r") as f:
+        return len([line for line in f.readlines() if line.strip()])
+
 def get_stock_item(filename):
-    """Pulls the first line from a text stock file and removes it forever."""
+    """Pulls the top line from a text stock file and removes it permanently."""
     if not os.path.exists(filename):
         return None
     
     with open(filename, "r") as f:
         lines = f.readlines()
         
-    if not lines:
+    cleaned_lines = [l for l in lines if l.strip()]
+    if not cleaned_lines:
         return None
     
-    # Strip whitespace out of the pulled reward code
-    pulled_item = lines[0].strip()
+    pulled_item = cleaned_lines[0].strip()
     
-    # Immediately overwrite the file removing that specific item
     with open(filename, "w") as f:
-        f.writelines(lines[1:])
+        f.writelines(cleaned_lines[1:])
         
     return pulled_item
 
-def count_stock(filename):
-    """Safely calculates the active line length inside a specific stock text file."""
-    if not os.path.exists(filename):
-        return 0
-    with open(filename, "r") as f:
-        return len([line for line in f.readlines() if line.strip()])
+def append_stock_item(filename, item):
+    """Appends a new line item to a stock text file safely."""
+    with open(filename, "a") as f:
+        f.write(f"{item}\n")
 
 
 @bot.event
@@ -134,8 +148,7 @@ async def dmall(interaction: discord.Interaction, message: str):
     print(f"Mass DM Complete. Sent: {success_count} | Failed: {fail_count}")
 
 
-# --- ADMIN PRIVILEGE COMMANDS ---
-
+# --- GIVEPREMIUM ADMIN COMMAND ---
 @bot.tree.command(name="givepremium", description="Grant premium generator access to a user.")
 @app_commands.describe(user="The user receiving premium status.", days="Days of premium. Use 0 for infinite.")
 async def givepremium(interaction: discord.Interaction, user: discord.User, days: int):
@@ -158,102 +171,84 @@ async def givepremium(interaction: discord.Interaction, user: discord.User, days
     await interaction.response.send_message(f"✅ Successfully granted **{duration_text} Premium** access to {user.mention}.", ephemeral=False)
 
 
-@bot.tree.command(name="addstock", description="Add a new reward item line directly to a targeted stock tier.")
+# --- NEW STOCK MANAGEMENT COMMANDS ---
+
+@bot.tree.command(name="addstock", description="Add an item item into a specific generator stock file.")
 @app_commands.describe(
-    item_type="Select the target item group.",
-    tier="Select if this item lands inside Free or Premium storage.",
-    code="The raw voucher token or full alt configuration credentials string."
+    tier="Choose between Free or Premium file tracking.",
+    type="The specific reward category.",
+    code="The reward code or account login line string."
 )
-@app_commands.choices(item_type=[
+@app_commands.choices(tier=[
+    app_commands.Choice(name="Free Tier", value="free"),
+    app_commands.Choice(name="Premium Tier", value="premium")
+], type=[
     app_commands.Choice(name="Nitro", value="nitro"),
     app_commands.Choice(name="Robux", value="robux"),
-    app_commands.Choice(name="Minecraft (MCFA)", value="mcfa")
-], tier=[
-    app_commands.Choice(name="Free Stock", value="free"),
-    app_commands.Choice(name="Premium Stock", value="premium")
+    app_commands.Choice(name="Minecraft Full Access", value="mcfa")
 ])
-async def addstock(interaction: discord.Interaction, item_type: app_commands.Choice[str], tier: app_commands.Choice[str], code: str):
+async def addstock(interaction: discord.Interaction, tier: app_commands.Choice[str], type: app_commands.Choice[str], code: str):
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("❌ You must be an Administrator to run this command.", ephemeral=True)
         return
 
-    filename = f"{tier.value}_{item_type.value}.txt"
+    file_key = f"{tier.value}_{type.value}"
+    filename = STOCK_FILES[file_key]
     
-    with open(filename, "a") as f:
-        f.write(f"{code.strip()}\n")
-        
-    await interaction.response.send_message(f"📦 Successfully appended new item to **{filename}**!", ephemeral=True)
+    append_stock_item(filename, code)
+    await interaction.response.send_message(f"✅ Successfully appended item to `{filename}` stock list.", ephemeral=True)
 
 
-# --- GENERAL AVAILABILITY USER COMMANDS ---
-
-@bot.tree.command(name="stock", description="Check the absolute item balance remaining inside all stock tiers.")
+@bot.tree.command(name="stock", description="Check current code stock amounts across all available categories.")
 async def stock(interaction: discord.Interaction):
-    # Public availability allows all members to execute this command visible to everyone
+    # Publicly visible to all members (ephemeral=False)
     embed = discord.Embed(
-        title="📦 Current Generator Live Stock", 
-        color=discord.Color.from_rgb(114, 137, 218),
-        timestamp=datetime.datetime.utcnow()
+        title="📦 Generator Active Stock Status",
+        description="Current number of working rewards available in real-time:",
+        color=discord.Color.from_rgb(0, 255, 170)
     )
-    embed.add_field(name="✨ Free Nitro", value=f"`{count_stock('free_nitro.txt')} left`", inline=True)
-    embed.add_field(name="👑 Premium Nitro", value=f"`{count_stock('premium_nitro.txt')} left`", inline=True)
-    embed.add_field(name="\u200b", value="\u200b", inline=False) # Visual spacing break
-    embed.add_field(name="🎮 Free Robux", value=f"`{count_stock('free_robux.txt')} left`", inline=True)
-    embed.add_field(name="💎 Premium Robux", value=f"`{count_stock('premium_robux.txt')} left`", inline=True)
-    embed.add_field(name="\u200b", value="\u200b", inline=False)
-    embed.add_field(name="🟩 Free MCFA", value=f"`{count_stock('free_mcfa.txt')} left`", inline=True)
-    embed.add_field(name="⚔️ Premium MCFA", value=f"`{count_stock('premium_mcfa.txt')} left`", inline=True)
+    embed.add_field(name="✨ Premium Nitro", value=f"`{count_stock(STOCK_FILES['premium_nitro'])} item(s)`", inline=True)
+    embed.add_field(name="🆓 Free Nitro", value=f"`{count_stock(STOCK_FILES['free_nitro'])} item(s)`", inline=True)
+    embed.add_field(name="\u200b", value="\u200b", inline=True) # visual spacer
     
-    embed.set_footer(text="Stock counters update in real-time upon redemption claims.")
+    embed.add_field(name="🎮 Premium Robux", value=f"`{count_stock(STOCK_FILES['premium_robux'])} item(s)`", inline=True)
+    embed.add_field(name="🆓 Free Robux", value=f"`{count_stock(STOCK_FILES['free_robux'])} item(s)`", inline=True)
+    embed.add_field(name="\u200b", value="\u200b", inline=True)
+    
+    embed.add_field(name="🟩 Premium MCFA", value=f"`{count_stock(STOCK_FILES['premium_mcfa'])} item(s)`", inline=True)
+    embed.add_field(name="🆓 Free MCFA", value=f"`{count_stock(STOCK_FILES['free_mcfa'])} item(s)`", inline=True)
+    embed.add_field(name="\u200b", value="\u200b", inline=True)
+    
+    embed.set_footer(text="Rewards are automatically consumed on generation.")
     await interaction.response.send_message(embed=embed, ephemeral=False)
 
 
-# --- TIERED GENERATOR REDEMPTION LOOPS ---
+# --- INDIVIDUAL GENERATOR SLOTS ---
 
-@bot.tree.command(name="nitro", description="Generate a real Discord Nitro link from tiered stock.")
-async def nitro(interaction: discord.Interaction):
-    is_premium = is_user_premium_status(interaction)
-    is_free = has_free_access(interaction)
-
-    if not is_premium and not is_free:
-        await interaction.response.send_message("❌ Access Denied. You need a generator role or active premium.", ephemeral=True)
+# 1. Premium Generators
+@bot.tree.command(name="premium_nitro", description="Claim a premium tier Nitro link.")
+async def premium_nitro(interaction: discord.Interaction):
+    if not is_user_premium_status(interaction):
+        await interaction.response.send_message("❌ Access Denied. You need premium tracking or the Boosted role.", ephemeral=True)
         return
-
-    filename = "premium_nitro.txt" if is_premium else "free_nitro.txt"
-    tier_name = "Premium" if is_premium else "Free"
-
-    reward = get_stock_item(filename)
+    reward = get_stock_item(STOCK_FILES["premium_nitro"])
     if not reward:
-        await interaction.response.send_message(f"❌ Sorry, the {tier_name} Nitro generator is currently out of stock!", ephemeral=True)
+        await interaction.response.send_message("❌ Out of Stock! Premium Nitro files are empty.", ephemeral=True)
         return
-
     link = f"https://discord.gift{reward}" if "discord.gift" not in reward else reward
-    embed = discord.Embed(
-        title=f"✨ {tier_name} Nitro Claimed", 
-        description=f"Here is your working reward:\n`{link}`", 
-        color=discord.Color.from_rgb(255, 115, 250)
-    )
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(f"✨ **Premium Nitro Claimed:**\n`{link}`", ephemeral=True)
 
-
-@bot.tree.command(name="robux", description="Generate a real Robux code from tiered stock.")
-async def robux(interaction: discord.Interaction):
-    is_premium = is_user_premium_status(interaction)
-    is_free = has_free_access(interaction)
-
-    if not is_premium and not is_free:
-        await interaction.response.send_message("❌ Access Denied. You need a generator role or active premium.", ephemeral=True)
+@bot.tree.command(name="premium_robux", description="Claim a premium tier Robux code.")
+async def premium_robux(interaction: discord.Interaction):
+    if not is_user_premium_status(interaction):
+        await interaction.response.send_message("❌ Access Denied. You need premium tracking or the Boosted role.", ephemeral=True)
         return
-
-    filename = "premium_robux.txt" if is_premium else "free_robux.txt"
-    tier_name = "Premium" if is_premium else "Free"
-
-    reward = get_stock_item(filename)
+    reward = get_stock_item(STOCK_FILES["premium_robux"])
     if not reward:
-        await interaction.response.send_message(f"❌ Sorry, the {tier_name} Robux generator is currently out of stock!", ephemeral=True)
+        await interaction.response.send_message("❌ Out of Stock! Premium Robux files are empty.", ephemeral=True)
         return
+    await interaction.response.send_message(f"🎮 **Premium Robux Pin:**\n**`{reward}`**", ephemeral=True)
 
-    embed = discord.Embed(
-        title=f"🎮 {tier_name} Robux Code Claimed", 
-        description=f"Your working Robux Card PIN:\n**`{reward}`**", 
-        color=discord.Color.from_rgb(0, 162, 255)
+@bot.tree.command(name="premium_mcfa", description="Claim a premium tier Minecraft account.")
+async def premium_mcfa(interaction: discord.Interaction):
+    if not is_user_premium_status(interaction):
