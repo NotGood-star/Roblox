@@ -117,7 +117,7 @@ def get_stock_item(filename):
     if not cleaned_lines:
         return None
     
-    # Extracting the first element directly from the list safely
+    # CORRECT FIX: Extracting the actual first string element out of the list before stripping
     pulled_item = cleaned_lines[0].strip()
     
     with open(filename, "w") as f:
@@ -136,7 +136,7 @@ async def on_ready():
     print(f"Logged in successfully as {bot.user.name}")
 
 
-# --- YOUR ORIGINAL DM ALL COMMAND (UNTOUCHED) ---
+# --- ORIGINAL DM ALL COMMAND (UNTOUCHED) ---
 @bot.tree.command(name="dmall", description="Send a DM to all members of this server.")
 @app_commands.describe(message="The announcement message to send.")
 async def dmall(interaction: discord.Interaction, message: str):
