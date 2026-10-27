@@ -113,22 +113,22 @@ def get_stock_item(filename):
     with open(filename, "r") as f:
         lines = f.readlines()
         
-    cleaned_lines = [l for l in lines if l.strip()]
+    cleaned_lines = [l.strip() for l in lines if l.strip()]
     if not cleaned_lines:
         return None
     
-    # CORRECT FIX: Extracting the actual first string element out of the list before stripping
-    pulled_item = cleaned_lines[0].strip()
+    pulled_item = cleaned_lines[0]
     
     with open(filename, "w") as f:
-        f.writelines(cleaned_lines[1:])
+        for line in cleaned_lines[1:]:
+            f.write(f"{line}\n")
         
     return pulled_item
 
 def append_stock_item(filename, item):
     """Appends a new line item to a stock text file safely."""
     with open(filename, "a") as f:
-        f.write(f"{item}\n")
+        f.write(f"{item.strip()}\n")
 
 
 @bot.event
@@ -136,7 +136,7 @@ async def on_ready():
     print(f"Logged in successfully as {bot.user.name}")
 
 
-# --- ORIGINAL DM ALL COMMAND (UNTOUCHED) ---
+# --- YOUR ORIGINAL DM ALL COMMAND (UNTOUCHED) ---
 @bot.tree.command(name="dmall", description="Send a DM to all members of this server.")
 @app_commands.describe(message="The announcement message to send.")
 async def dmall(interaction: discord.Interaction, message: str):
