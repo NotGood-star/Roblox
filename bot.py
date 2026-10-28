@@ -6,8 +6,7 @@ import threading
 import discord
 from discord import app_commands
 from discord.ext import commands
-from fastapi import FastAPI
-import uvicorn
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # Setup basic intents
 intents = discord.Intents.default()
@@ -238,4 +237,4 @@ async def gen(interaction: discord.Interaction, tier: app_commands.Choice[str], 
         
         await interaction.user.send(embed=embed)
         await interaction.response.send_message(f"✅ Successfully generated a **{type.name}** item! Check your Direct Messages.", ephemeral=True)
-    except discord.Forbidden:
+    except Exception:
