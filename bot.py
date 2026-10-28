@@ -237,4 +237,5 @@ async def gen(interaction: discord.Interaction, tier: app_commands.Choice[str], 
         await interaction.user.send(embed=embed)
         await interaction.response.send_message(f"✅ Successfully generated a **{type.name}** item! Check your Direct Messages.", ephemeral=True)
     except discord.Forbidden:
-        # FIXED: Corrected indentation rules under the exception recovery block
+        with open(filename, "r") as f:
+            current_contents = f.read()
