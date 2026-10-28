@@ -2,6 +2,7 @@ import os
 import json
 import datetime
 import asyncio
+import threading
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -238,4 +239,3 @@ async def gen(interaction: discord.Interaction, tier: app_commands.Choice[str], 
         await interaction.response.send_message(f"✅ Successfully generated a **{type.name}** item! Check your Direct Messages.", ephemeral=True)
     except discord.Forbidden:
         with open(filename, "r") as f:
-            current_contents = f.read()
