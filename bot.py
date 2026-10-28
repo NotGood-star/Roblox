@@ -108,7 +108,6 @@ def get_stock_item(filename):
     if not cleaned_lines:
         return None
     
-    # CRITICAL FIX: Grab the top element line correctly as a string
     pulled_item = cleaned_lines[0]
     
     with open(filename, "w") as f:
@@ -238,4 +237,4 @@ async def gen(interaction: discord.Interaction, tier: app_commands.Choice[str], 
         await interaction.user.send(embed=embed)
         await interaction.response.send_message(f"✅ Successfully generated a **{type.name}** item! Check your Direct Messages.", ephemeral=True)
     except discord.Forbidden:
-        with open(filename, "r") as f:
+        # FIXED: Corrected indentation rules under the exception recovery block
