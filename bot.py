@@ -8,7 +8,6 @@ from discord import app_commands
 from discord.ext import commands
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-# Setup basic intents
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
@@ -226,15 +225,21 @@ async def gen(interaction: discord.Interaction, tier: app_commands.Choice[str], 
         await interaction.response.send_message(f"🚨 Out of stock! The `{tier.name}` category for `{type.name}` has no items left.", ephemeral=True)
         return
 
-    try:
-        embed = discord.Embed(
-            title="🎁 Reward Generated Successfully!",
-            description=f"Here is your generated {tier.name} - **{type.name}** reward item.",
-            color=discord.Color.from_rgb(0, 190, 255)
-        )
-        embed.add_field(name="🔑 Your Code / Account Login:", value=f"`{reward}`", inline=False)
-        embed.set_footer(text="Do not share this text with others.")
-        
-        await interaction.user.send(embed=embed)
-        await interaction.response.send_message(f"✅ Successfully generated a **{type.name}** item! Check your Direct Messages.", ephemeral=True)
-    except Exception:
+    embed = discord.Embed(
+        title="🎁 Reward Generated Successfully!",
+        description=f"Here is your generated {tier.name} - **{type.name}** reward item.",
+        color=discord.Color.from_rgb(0, 190, 255)
+    )
+    embed.add_field(name="🔑 Your Code / Account Login:", value=f"`{reward}`", inline=False)
+    embed.set_footer(text="Do not share this text with others.")
+    
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+# --- LIGHTWEIGHT BUILT-IN HTTP SERVER ---
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Healthy")
+
