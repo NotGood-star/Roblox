@@ -6,7 +6,8 @@ import threading
 import discord
 from discord import app_commands
 from discord.ext import commands
-from aiohttp import web
+from fastapi import FastAPI
+import uvicorn
 
 # Setup basic intents
 intents = discord.Intents.default()
