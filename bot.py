@@ -2,10 +2,11 @@ import os
 import json
 import datetime
 import asyncio
+import threading
 import discord
 from discord import app_commands
 from discord.ext import commands
-from aiohttp import web
+from flask import Flask
 
 # Setup basic intents
 intents = discord.Intents.default()
@@ -235,11 +236,14 @@ async def gen(interaction: discord.Interaction, tier: app_commands.Choice[str], 
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# --- AIOHTTP PING WEB SERVICE ---
-async def handle(request):
-    return web.Response(text="Web Service Keep Alive Active Status: Ok")
+# --- FLASK INSTANT PORT BINDER ---
+flask_app = Flask(__name__)
 
-async def main():
-    app = web.Application()
-    app.router.add_get('/', handle)
-    runner = web.AppRunner(app)
+@flask_app.route('/')
+def home():
+    return "Port check verified. Bot running safely."
+
+def start_discord_bot():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    token = os.getenv("DISCORD_TOKEN")
