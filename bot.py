@@ -2,10 +2,11 @@ import os
 import json
 import datetime
 import asyncio
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import discord
 from discord import app_commands
 from discord.ext import commands
-from aiohttp import web
 
 # Setup basic intents
 intents = discord.Intents.default()
@@ -235,13 +236,9 @@ async def gen(interaction: discord.Interaction, tier: app_commands.Choice[str], 
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# --- UNIFIED WEB SERVER RUNNER ---
-async def handle(request):
-    return web.Response(text="Bot is running smoothly online!")
-
-async def start_web_server():
-    app = web.Application()
-    app.router.add_get('/', handle)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    
+# --- LIGHTWEIGHT HTTP SERVER ENGINE ---
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/plain")
+        self.end_headers()
