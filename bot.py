@@ -2,13 +2,10 @@ import os
 import json
 import datetime
 import asyncio
-import threading
 import discord
 from discord import app_commands
 from discord.ext import commands
-from flask import Flask
 
-# Setup basic intents
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
@@ -236,14 +233,7 @@ async def gen(interaction: discord.Interaction, tier: app_commands.Choice[str], 
     
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# --- FLASK INSTANT PORT BINDER ---
-flask_app = Flask(__name__)
-
-@flask_app.route('/')
-def home():
-    return "Port check verified. Bot running safely."
-
-def start_discord_bot():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    token = os.getenv("DISCORD_TOKEN")
+if __name__ == "__main__":
+    TOKEN = os.getenv("DISCORD_TOKEN")
+    if TOKEN:
+        bot.run(TOKEN)
