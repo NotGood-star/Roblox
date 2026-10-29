@@ -237,11 +237,9 @@ async def gen(interaction: discord.Interaction, tier: app_commands.Choice[str], 
 
 # --- AIOHTTP PING WEB SERVICE ---
 async def handle(request):
-    return web.Response(text="Web Service Port Verification Active")
+    return web.Response(text="Web Service Keep Alive Active Status: Ok")
 
 async def main():
     app = web.Application()
     app.router.add_get('/', handle)
     runner = web.AppRunner(app)
-    await runner.setup()
-    
